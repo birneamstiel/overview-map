@@ -1,6 +1,5 @@
 import argparse
 from PIL import Image
-from PIL.ExifTags import TAGS, GPSTAGS
 import glob
 import sys
 import os
@@ -9,8 +8,8 @@ from get_lat_lon_exif_pil import get_exif_data
 from mapbox import StaticStyle
 import geojson
 from dotenv import load_dotenv
-load_dotenv()
 
+load_dotenv()
 
 parser = argparse.ArgumentParser(
     description='Generate a image file containing a map of the coordinates stored in the passed pictures.')
@@ -20,21 +19,22 @@ parser.add_argument('directory', metavar='path',
 args = parser.parse_args()
 print(args.directory)
 
-def processImages(path):
+
+def process_images(path):
     directory = path + '/*.jpg'
     coordinates = []
     for filename in glob.glob(directory):  # assuming gif
         im = Image.open(filename)
-        coordinates.append(getCoordinateForImage(im))
+        coordinates.append(get_coordinates_from_image(im))
 
-    coordinates = preprocessCoordinates(coordinates)
-    boundingBox = findBoundingBox(coordinates)
+    coordinates = preprocess_coordinates(coordinates)
+    boundingBox = find_bounding_box(coordinates)
     print("bounding box: ", boundingBox)
-    getMapForCoordinates(boundingBox)
+    get_map_for_coordinates(boundingBox)
     print(coordinates)
 
 
-def findBoundingBox(coordinates):
+def find_bounding_box(coordinates):
     minX = sys.float_info.max
     minY = sys.float_info.max
     maxX = sys.float_info.min
@@ -54,7 +54,8 @@ def findBoundingBox(coordinates):
     boundingBox = [(minX, minY), (maxX, maxY)]
     return boundingBox
 
-def preprocessCoordinates(coordinates, precision = 2):
+
+def preprocess_coordinates(coordinates, precision=2):
     newCoordinates = []
     for coordinate in coordinates:
 
@@ -66,7 +67,8 @@ def preprocessCoordinates(coordinates, precision = 2):
             newCoordinates.append(newCoordinate)
     return newCoordinates
 
-def getMapForCoordinates(coordinates):
+
+def get_map_for_coordinates(coordinates):
     ACCESS_TOKEN = os.getenv("MAPBOX_ACCESS_TOKEN")
     USERNAME = os.getenv("MAPBOX_STYLE_USER")
     STYLE_ID = os.getenv("MAPBOX_STYLE_ID")
@@ -75,19 +77,16 @@ def getMapForCoordinates(coordinates):
     feature = geojson.Feature(geometry=multipoint)
     print (feature)
 
-
-    response = service.image(username=USERNAME, style_id=STYLE_ID, features=[feature], width=1200, height=1200, retina=True)
+    response = service.image(username=USERNAME, style_id=STYLE_ID, features=[feature], width=1200, height=1200,
+                             retina=True)
     print(response.status_code)
 
     with open(args.directory + '/_map.png', 'wb') as output:
         _ = output.write(response.content)
 
 
-def getCoordinateForImage(image):
+def get_coordinates_from_image(image):
     return get_lat_lon(get_exif_data(image))
 
-def retrieveBoundingBox():
-    print('retrieving')
 
-
-processImages(args.directory)
+process_images(args.directory)
